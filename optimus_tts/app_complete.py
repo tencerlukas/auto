@@ -1,6 +1,6 @@
-"""Flask app for Optimus Prime TTS"""
+"""Flask app for Transformers TTS with complete model list and license info"""
 
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import base64
 import io
@@ -88,11 +88,7 @@ def synthesize():
             audio, sample_rate = model.generate(text, character)
         except Exception as e:
             print(f"Error generating with {model_name}: {e}")
-            # Fallback to simple generation
-            duration = min(len(text) * 0.1, 5.0)
-            sample_rate = 22050
-            t = np.linspace(0, duration, int(sample_rate * duration))
-            audio = np.sin(2 * np.pi * 200 * t) * 0.5
+            return jsonify({'error': f'Generation failed: {str(e)}'}), 500
         
         # Normalize audio
         if np.max(np.abs(audio)) > 0:
@@ -138,6 +134,21 @@ if __name__ == '__main__':
     os.makedirs('templates', exist_ok=True)
     os.makedirs('static', exist_ok=True)
     
-    print("Starting Optimus Prime TTS Server...")
-    print(f"Available models: {list(MODELS.keys())}")
+    print("Starting Transformers TTS Server (Complete Edition)...")
+    print(f"Total models available: {len(MODELS)}")
+    
+    # Print model summary
+    open_source = [name for name, (_, _, is_os) in MODELS.items() if is_os]
+    proprietary = [name for name, (_, _, is_os) in MODELS.items() if not is_os]
+    
+    print(f"\nOpen Source Models ({len(open_source)}):")
+    for model in open_source:
+        _, license_info, _ = MODELS[model]
+        print(f"  • {model} - {license_info}")
+    
+    print(f"\nProprietary/Freeware Models ({len(proprietary)}):")
+    for model in proprietary:
+        _, license_info, _ = MODELS[model]
+        print(f"  • {model} - {license_info}")
+    
     app.run(debug=True, host='0.0.0.0', port=5555)
